@@ -1,6 +1,7 @@
 {
-  "rewrites": [
-    { "source": "/checkin", "destination": "/public/checkin.html" },
-    { "source": "/operator", "destination": "/public/operator.html" }
+  "routes": [
+    { "src": "/checkin", "dest": "/public/checkin.html" },
+    { "src": "/operator", "dest": "/public/operator.html" },
+    { "src": "/api/(.*)", "dest": "/api/$1" }
   ]
 }
