@@ -1,7 +1,7 @@
 {
   "routes": [
-    { "src": "/checkin", "dest": "/public/checkin.html" },
-    { "src": "/operator", "dest": "/public/operator.html" },
+    { "src": "/checkin", "dest": "/checkin.html" },
+    { "src": "/operator", "dest": "/operator.html" },
     { "src": "/api/(.*)", "dest": "/api/$1" }
   ]
 }
