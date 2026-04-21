@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/checkin", "destination": "/public/checkin.html" },
+    { "source": "/operator", "destination": "/public/operator.html" }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "parkingten",
+  "version": "1.0.0",
+  "description": "Parking infrastructure management platform",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.28.0"
+  }
+}
