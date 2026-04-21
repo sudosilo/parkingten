@@ -2,7 +2,7 @@
   "name": "parkingten",
   "version": "1.0.0",
   "description": "Parking infrastructure management platform",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
     "dev": "vercel dev"
   },
