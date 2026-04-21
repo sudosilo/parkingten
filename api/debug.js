@@ -1,7 +1,13 @@
 export default async function handler(req, res) {
-  return res.status(200).json({
-    hasUrl: !!process.env.UPSTASH_REDIS_REST_URL,
-    hasToken: !!process.env.UPSTASH_REDIS_REST_TOKEN,
-    urlStart: process.env.UPSTASH_REDIS_REST_URL?.slice(0, 30) || 'missing'
-  });
+  try {
+    const url = process.env.UPSTASH_REDIS_REST_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+    const resp = await fetch(`${url}/ping`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const text = await resp.text();
+    return res.status(200).json({ status: resp.status, body: text });
+  } catch (err) {
+    return res.status(200).json({ error: err.message, type: err.constructor.name });
+  }
 }
