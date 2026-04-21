@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PARKINGTEN -- Operator</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #080808;
+    --surface: #111;
+    --surface2: #181818;
+    --border: #222;
+    --accent: #e8ff47;
+    --accent2: #47ffe8;
+    --text: #e8e8e8;
+    --muted: #555;
+    --danger: #ff4747;
+    --success: #47ff8a;
+    --warn: #ffaa47;
+    --spot-empty: #1a1a1a;
+    --spot-occupied: #1a2e1a;
+    --spot-flagged: #2e1a1a;
+    --spot-operator: #1a1a2e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100dvh; }
+  #authScreen { min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .auth-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+    padding: 40px 32px; width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 20px;
+  }
+  .auth-logo { font-family: 'Bebas Neue', sans-serif; font-size: 2.4rem; color: var(--accent); letter-spacing: 0.08em; text-align: center; }
+  .auth-logo span { color: var(--text); opacity: 0.3; }
+  .auth-sub { text-align: center; font-si
+  .grid-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  .grid-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 0.1em; color: var(--text); }
+  .legend { display: flex; gap: 14px; font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+  .spot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; margin-bottom: 24px; }
+  .spot-cell { background: var(--spot-empty); border: 1px solid var(--border); border-radius: 4px; padding: 14px 10px; text-align: center; cursor: pointer; transition: border-color 0.15s, transform 0.1s; position: relative; }
+  .spot-cell:hover { border-color: var(--accent); transform: scale(1.02); }
+  .spot-cell.occupied { background: var(--spot-occupied); border-color: var(--success); }
+  .spot-cell.flagged { background: var(--spot-flagged); border-color: var(--danger); }
+  .spot-cell.operator { background: var(--spot-operator); border-color: var(--accent2); }
+  .spot-num { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; color: var(--text); line-height: 1; }
+  .spot-plate { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--muted); margin-top: 4px; letter-spacing: 0.05em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .spot-status-label { font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 3px; }
+  .spot-cell.occupied .spot-status-label { color: var(--success); }
+  .spot-cell.flagged .spot-status-label { color: var(--danger); }
+  .spot-cell.operator .spot-status-label { color: var(--accent2); }
+  .spot-cell:not(.occupied):not(.flagged):not(.operator) .spot-status-label { color: var(--muted); }
+  .flag-badge { position: absolute; top: 5px; right: 6px; font-size: 0.65rem; color: var(--danger); }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .section-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.1em; }
+  .sessions-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .sessions-table th { text-align: left; padding: 10px 12px; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .sessions-table td { padding: 12px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .sessions-table tr:hover td { background: var(--surface2); }
+  .plate-badge { font-family: 'DM Mono', monospace; background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 3px 8px; font-size: 0.85rem; letter-spacing: 0.1em; }
+  .status-badge { font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 8px; border-radius: 2px; }
+  .status-badge.active { background: rgba(71,255,138,0.1); color: var(--success); }
+  .status-badge.flagged { background: rgba(255,71,71,0.1); color: var(--danger); }
+  .status-badge.operator { background: rgba(71,255,232,0.1); color: var(--accent2); }
+  .status-badge.closed { background: rgba(85,85,85,0.2); color: var(--muted); }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 28px; width: 100%; max-width: 440px; max-height: 90dvh; overflow-y: auto; }
+  .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 0.1em; margin-bottom: 20px; color: var(--accent); }
+  .form-row { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+  .form-row label { font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.83rem; }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { color: var(--muted); }
+  .detail-val { font-family: 'DM Mono', monospace; text-align: right; max-width: 60%; word-break: break-all; }
+  .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+  .search-bar input { flex: 1; }
+  .plate-history { display: flex; flex-direction: column; gap: 10px; }
+  .history-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 16px; }
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); font-size: 0.85rem; }
+  .empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--text); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .refresh-time { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.08em; }
+  .overflow-table { overflow-x: auto; }
+  .print-section { margin-bottom: 20px; }
+  .print-section h3 { font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 8px; }
+  .print-table { width: 100%; border-collapse: collapse; }
+  .print-table td { padding: 5px 0; border-bottom: 1px solid #ddd; }
+  .print-table td:last-child { text-align: right; }
+</style>
+</head>
+<body>
+<div id="authScreen">
+  <div class="auth-box">
+    <div class="auth-logo">PARKING<span>TEN</span></div>
+    <div class="auth-sub">Operator Dashboard</div>
+    <input type="password" id="authInput" placeholder="Operator password" autocomplete="current-password" />
+    <button class="btn" id="authBtn">Access Dashboard</button>
+    <div class="auth-error" id="authError">Incorrect password. Try again.</div>
+  </div>
+</div>
+<div id="appScreen">
+  <div class="topbar">
+    <div class="topbar-logo">PARKING<span>TEN</span></div>
+    <div class="topbar-right">
+      <div class="status-dot"></div>
+      <span id="liveLabel">LIVE</span>
+      <span class="refresh-time" id="lastRefresh"></span>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-tab="grid">Spot Grid</div>
+    <div class="tab" data-tab="sessions">Sessions</div>
+    <div class="tab" data-tab="search">Plate Search</div>
+    <div class="tab" data-tab="manual">Manual Entry</div>
+  </div>
+  <div class="tab-content active" id="tab-grid">
+    <div class="grid-header">
+      <div class="grid-title">Parking Lot</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--spot-empty);border:1px solid var(--border)"></div>Empty</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--spot-occupied);border:1px solid var(--success)"></div>Occupied</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--spot-flagged);border:1px solid var(--danger)"></div>Flagged</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--spot-operator);border:1px solid var(--accent2)"></div>Operator</div>
+      </div>
+    </div>
+    <div class="spot-grid" id="spotGrid"></div>
+  </div>
+  <div class="tab-content" id="tab-sessions">
+    <div class="section-header">
+      <div class="section-title">Active Sessions</div>
+      <button class="btn ghost small" onclick="loadSessions()">Refresh</button>
+    </div>
+    <div class="overflow-table">
+      <table class="sessions-table" id="sessionsTable">
+        <thead>
+          <tr>
+            <th>Spot</th><th>Plate</th><th>Started</th><th>Duration</th><th>Type</th><th>Flags</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="sessionsBody">
+          <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted);">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="tab-content" id="tab-search">
+    <div class="section-title" style="margin-bottom:16px;">Plate Search</div>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Enter plate number" style="text-transform:uppercase;" maxlength="10" />
+      <button class="btn small" onclick="searchPlate()">Search</button>
+    </div>
+    <div class="plate-history" id="plateHistory">
+      <div class="empty-state"><div class="empty-icon">&#x1F50D;</div>Enter a plate number to view history</div>
+    </div>
+  </div>
+  <div class="tab-content" id="tab-manual">
+    <div class="section-title" style="margin-bottom:6px;">Operator-Initiated Session</div>
+    <div style="color:var(--muted);font-size:0.8rem;margin-bottom:20px;">Use this to log a vehicle the operator has observed -- no customer interaction required.</div>
+    <div class="form-row">
+      <label>Spot Number</label>
+      <input type="number" id="manualSpot" placeholder="Spot number" min="1" />
+    </div>
+    <div class="form-row">
+      <label>License Plate</label>
+      <input type="text" id="manualPlate" placeholder="ABC1234" maxlength="10" style="text-transform:uppercase;font-size:1.1rem;letter-spacing:0.15em;" />
+    </div>
+    <div class="form-row">
+      <label>Vehicle Description (optional)</label>
+      <input type="text" id="manualDesc" placeholder="e.g. Blue Honda Civic, dented rear bumper" />
+    </div>
+    <div class="form-row">
+      <label>Operator Note</label>
+      <textarea id="manualNote" rows="3" placeholder="Reason for manual entry, observations, etc." style="resize:vertical;"></textarea>
+    </div>
+    <button class="btn" id="manualSubmitBtn" onclick="submitManual()">Log Vehicle</button>
+    <div id="manualMsg" style="margin-top:12px;font-size:0.8rem;display:none;"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="spotModal">
+  <div class="modal">
+    <div class="modal-title" id="spotModalTitle">Spot Detail</div>
+    <div id="spotModalContent"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal('spotModal')">Close</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="sessionModal">
+  <div class="modal">
+    <div class="modal-title" id="sessionModalTitle">Session Detail</div>
+    <div id="sessionModalContent"></div>
+    <div class="modal-actions" id="sessionModalActions"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="feeModal">
+  <div class="modal">
+    <div class="modal-title">Fee Statement</div>
+    <div id="feeModalContent"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="window.print()">Print / Save PDF</button>
+      <button class="btn ghost" onclick="closeModal('feeModal')">Close</button>
+    </div>
+  </div>
+</div>
+<script>
+  const AUTH_KEY = 'pt_auth';
+  let authed = sessionStorage.getItem(AUTH_KEY) === '1';
+
+  function showApp() {
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'block';
+    init();
+  }
+
+  if (authed) showApp();
+
+  document.getElementById('authBtn').onclick = async () => {
+    const pw = document.getElementById('authInput').value;
+    const resp = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      sessionStorage.setItem(AUTH_KEY, '1');
+      authed = true;
+      showApp();
+    } else {
+      document.getElementById('authError').style.display = 'block';
+    }
+  };
+
+  document.getElementById('authInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('authBtn').click();
+  });
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      if (tab.dataset.tab === 'sessions') loadSessions();
+    });
+  });
+
+  let activeSessions = [];
+  let spotConfig = [];
+
+  async function init() {
+    await Promise.all([loadSpots(), loadSessions()]);
+    setInterval(refreshData, 30000);
+  }
+
+  async function refreshData() {
+    await Promise.all([loadSpots(), loadSessions()]);
+    document.getElementById('lastRefresh').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  }
+
+  async function loadSpots() {
+    try {
+      const [spotsResp, sessResp] = await Promise.all([
+        fetch('/api/spots'),
+        fetch('/api/sessions?action=active')
+      ]);
+      spotConfig = await spotsResp.json();
+      activeSessions = await sessResp.json();
+      renderGrid();
+    } catch (err) { console.error('Load spots error:', err); }
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById('spotGrid');
+    const sessionsBySpot = {};
+    activeSessions.forEach(s => { sessionsBySpot[s.spotNumber] = s; });
+    grid.innerHTML = spotConfig.map(spot => {
+      const session = sessionsBySpot[spot.number];
+      const isFlagged = session && session.flags && session.flags.length > 0;
+      const isOperator = session && session.operatorInitiated;
+      const isOccupied = !!session;
+      let cls = 'spot-cell';
+      let statusLabel = 'EMPTY';
+      if (isFlagged) { cls += ' flagged'; statusLabel = 'FLAGGED'; }
+      else if (isOperator) { cls += ' operator'; statusLabel = 'OPERATOR'; }
+      else if (isOccupied) { cls += ' occupied'; statusLabel = 'OCCUPIED'; }
+      const plateDisplay = session ? session.plate : '';
+      return `
+        <div class="${cls}" onclick="showSpotDetail('${spot.number}')">
+          ${isFlagged ? '<div class="flag-badge">!</div>' : ''}
+          <div class="spot-num">${spot.number}</div>
+          <div class="spot-plate">${plateDisplay}</div>
+          <div class="spot-status-label">${statusLabel}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function showSpotDetail(spotNum) {
+    const session = activeSessions.find(s => s.spotNumber === String(spotNum));
+    const modal = document.getElementById('spotModal');
+    document.getElementById('spotModalTitle').textContent = 'Spot ' + spotNum;
+    if (!session) {
+      document.getElementById('spotModalContent').innerHTML = `
+        <div style="color:var(--muted);margin-bottom:20px;">This spot is currently empty.</div>
+        <button class="btn" onclick="closeModal('spotModal');document.querySelector('[data-tab=manual]').click();document.getElementById('manualSpot').value='${spotNum}'">
+          Log a Vehicle Here
+        </button>
+      `;
+    } else {
+      document.getElementById('spotModalContent').innerHTML = buildSessionDetail(session) + `
+        <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+          ${session.flags && session.flags.length === 0
+            ? `<button class="btn warn-btn small" onclick="flagSession('${session.id}')">Flag Session</button>`
+            : `<button class="btn ghost small" onclick="unflagSession('${session.id}')">Clear Flag</button>`}
+          <button class="btn danger-btn small" onclick="closeSession('${session.id}')">Close Session</button>
+          <button class="btn ghost small" onclick="showFeeStatement('${session.id}')">Fee Statement</button>
+          <button class="btn ghost small" onclick="closeModal('spotModal')">Close</button>
+        </div>
+      `;
+    }
+    modal.classList.add('open');
+  }
+
+  async function loadSessions() {
+    try {
+      const resp = await fetch('/api/sessions?action=active');
+      activeSessions = await resp.json();
+      renderSessionsTable();
+      renderGrid();
+      document.getElementById('lastRefresh').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    } catch (err) { console.error('Load sessions error:', err); }
+  }
+
+  function renderSessionsTable() {
+    const tbody = document.getElementById('sessionsBody');
+    if (!activeSessions || activeSessions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">&#x1F697;</div>No active sessions</div></td></tr>';
+      return;
+    }
+    const sorted = [...activeSessions].sort((a, b) => a.spotNumber - b.spotNumber);
+    tbody.innerHTML = sorted.map(s => {
+      const duration = formatDuration(Date.now() - s.startTime);
+      const isFlagged = s.flags && s.flags.length > 0;
+      const type = s.operatorInitiated ? 'operator' : 'active';
+      return `
+        <tr>
+          <td><strong>${s.spotNumber}</strong></td>
+          <td><span class="plate-badge">${s.plate}</span></td>
+          <td style="font-size:0.75rem;color:var(--muted);">${new Date(s.startTime).toLocaleString()}</td>
+          <td style="font-family:'DM Mono',monospace;font-size:0.8rem;">${duration}</td>
+          <td><span class="status-badge ${type}">${s.operatorInitiated ? 'Operator' : 'Self'}</span></td>
+          <td>${isFlagged ? '<span style="color:var(--danger);">&#9888; ' + s.flags.length + '</span>' : '<span style="color:var(--muted);">--</span>'}</td>
+          <td>
+            <div class="actions">
+              <button class="btn ghost small" onclick="showSessionDetail('${s.id}')">Detail</button>
+              ${!isFlagged
+                ? `<button class="btn warn-btn small" onclick="flagSession('${s.id}')">Flag</button>`
+                : `<button class="btn ghost small" onclick="unflagSession('${s.id}')">Unflag</button>`}
+              <button class="btn danger-btn small" onclick="closeSession('${s.id}')">Close</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function buildSessionDetail(s) {
+    const analysis = s.plateAnalysis;
+    const rows = [
+      ['Session ID', s.id],
+      ['Spot', s.spotNumber],
+      ['Plate', s.plate],
+      ['Started', new Date(s.startTime).toLocaleString()],
+      ['Duration', formatDuration(Date.now() - s.startTime)],
+      ['Type', s.operatorInitiated ? 'Operator Initiated' : 'Self Check-In'],
+      ['Status', (s.flags && s.flags.length > 0) ? 'FLAGGED' : 'Active'],
+      ['Operator Note', s.operatorNote || '--']
+    ];
+    if (analysis) {
+      rows.push(
+        ['AI: Plate Readable', analysis.readable ? 'Yes' : 'No'],
+        ['AI: Extracted Plate', analysis.extractedPlate || '--'],
+        ['AI: Plate Match', analysis.plateMatch === true ? 'Match' : analysis.plateMatch === false ? 'Mismatch' : '--'],
+        ['AI: Color', analysis.vehicleColor || '--'],
+        ['AI: Make/Model', [analysis.vehicleMake, analysis.vehicleModel].filter(Boolean).join(' ') || '--'],
+        ['AI: Notes', analysis.notes || '--']
+      );
+    }
+    if (s.flags && s.flags.length > 0) {
+      s.flags.forEach((f, i) => {
+        rows.push(['Flag ' + (i + 1), f.note + ' -- ' + new Date(f.time).toLocaleString()]);
+      });
+    }
+    return rows.map(([k, v]) =>
+      `<div class="detail-row"><span class="detail-key">${k}</span><span class="detail-val">${v}</span></div>`
+    ).join('');
+  }
+
+  function showSessionDetail(sessionId) {
+    const session = activeSessions.find(s => s.id === sessionId);
+    if (!session) return;
+    document.getElementById('sessionModalTitle').textContent = 'Session -- Spot ' + session.spotNumber;
+    document.getElementById('sessionModalContent').innerHTML = buildSessionDetail(session);
+    const isFlagged = session.flags && session.flags.length > 0;
+    document.getElementById('sessionModalActions').innerHTML = `
+      ${!isFlagged
+        ? `<button class="btn warn-btn small" onclick="flagSession('${session.id}')">Flag</button>`
+        : `<button class="btn ghost small" onclick="unflagSession('${session.id}')">Unflag</button>`}
+      <button class="btn danger-btn small" onclick="closeSession('${session.id}')">Close Session</button>
+      <button class="btn ghost small" onclick="showFeeStatement('${session.id}')">Fee Statement</button>
+      <button class="btn ghost" onclick="closeModal('sessionModal')">Close</button>
+    `;
+    document.getElementById('sessionModal').classList.add('open');
+  }
+</script>
+<script>
+  async function closeSession(sessionId) {
+    if (!confirm('Close this session? This marks the vehicle as departed.')) return;
+    const resp = await fetch('/api/sessions?action=close', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId })
+    });
+    const data = await resp.json();
+    if (data.success) { closeModal('spotModal'); closeModal('sessionModal'); await loadSessions(); }
+  }
+
+  async function flagSession(sessionId) {
+    const note = prompt('Flag reason (optional):') || 'Flagged by operator';
+    const resp = await fetch('/api/sessions?action=flag', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, flagNote: note })
+    });
+    const data = await resp.json();
+    if (data.success) { closeModal('spotModal'); closeModal('sessionModal'); await loadSessions(); }
+  }
+
+  async function unflagSession(sessionId) {
+    const resp = await fetch('/api/sessions?action=unflag', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId })
+    });
+    const data = await resp.json();
+    if (data.success) { closeModal('spotModal'); closeModal('sessionModal'); await loadSessions(); }
+  }
+
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    e.target.value = e.target.value.toUpperCase();
+  });
+
+  document.getElementById('searchInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') searchPlate();
+  });
+
+  async function searchPlate() {
+    const plate = document.getElementById('searchInput').value.trim().toUpperCase();
+    if (!plate) return;
+    const container = document.getElementById('plateHistory');
+    container.innerHTML = '<div class="empty-state"><span class="spinner"></span> Searching...</div>';
+    try {
+      const resp = await fetch('/api/sessions?action=plate&plate=' + encodeURIComponent(plate));
+      const sessions = await resp.json();
+      if (!sessions || sessions.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x1F50D;</div>No sessions found for ' + plate + '</div>';
+        return;
+      }
+      container.innerHTML = sessions.map(s => `
+        <div class="history-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span class="plate-badge">${s.plate}</span>
+            <span class="status-badge ${s.status === 'active' ? 'active' : 'closed'}">${s.status.toUpperCase()}</span>
+          </div>
+          <div class="detail-row"><span class="detail-key">Spot</span><span class="detail-val">${s.spotNumber}</span></div>
+          <div class="detail-row"><span class="detail-key">Started</span><span class="detail-val">${new Date(s.startTime).toLocaleString()}</span></div>
+          <div class="detail-row"><span class="detail-key">Ended</span><span class="detail-val">${s.endTime ? new Date(s.endTime).toLocaleString() : '--'}</span></div>
+          <div class="detail-row"><span class="detail-key">Type</span><span class="detail-val">${s.operatorInitiated ? 'Operator' : 'Self'}</span></div>
+          <div class="detail-row"><span class="detail-key">Flags</span><span class="detail-val">${s.flags && s.flags.length > 0 ? s.flags.length + ' flag(s)' : 'None'}</span></div>
+          ${s.operatorNote ? `<div class="detail-row"><span class="detail-key">Note</span><span class="detail-val">${s.operatorNote}</span></div>` : ''}
+          <div style="margin-top:12px;">
+            <button class="btn ghost small" onclick="showFeeStatement('${s.id}')">Fee Statement</button>
+          </div>
+        </div>
+      `).join('');
+    } catch (err) {
+      container.innerHTML = '<div class="empty-state">Search failed. Try again.</div>';
+    }
+  }
+
+  document.getElementById('manualPlate').addEventListener('input', (e) => {
+    e.target.value = e.target.value.toUpperCase();
+  });
+
+  async function submitManual() {
+    const spot = document.getElementById('manualSpot').value.trim();
+    const plate = document.getElementById('manualPlate').value.trim().toUpperCase();
+    const desc = document.getElementById('manualDesc').value.trim();
+    const note = document.getElementById('manualNote').value.trim();
+    const msg = document.getElementById('manualMsg');
+    const btn = document.getElementById('manualSubmitBtn');
+    if (!spot || !plate) {
+      msg.style.display = 'block';
+      msg.style.color = 'var(--danger)';
+      msg.textContent = 'Spot number and plate are required.';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Logging...';
+    try {
+      const resp = await fetch('/api/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          spotNumber: spot,
+          plate,
+          operatorInitiated: true,
+          operatorNote: [desc, note].filter(Boolean).join(' | ') || null
+        })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        msg.style.display = 'block';
+        msg.style.color = 'var(--success)';
+        msg.textContent = 'Vehicle logged. Session ID: ' + data.sessionId;
+        document.getElementById('manualSpot').value = '';
+        document.getElementById('manualPlate').value = '';
+        document.getElementById('manualDesc').value = '';
+        document.getElementById('manualNote').value = '';
+        await loadSessions();
+      } else { throw new Error(data.error || 'Failed'); }
+    } catch (err) {
+      msg.style.display = 'block';
+      msg.style.color = 'var(--danger)';
+      msg.textContent = 'Error: ' + err.message;
+    }
+    btn.disabled = false;
+    btn.textContent = 'Log Vehicle';
+  }
+
+  async function showFeeStatement(sessionId) {
+    let session = activeSessions.find(s => s.id === sessionId);
+    if (!session) {
+      try {
+        const resp = await fetch('/api/sessions?action=one&sessionId=' + sessionId);
+        session = await resp.json();
+      } catch { return; }
+    }
+    const duration = Date.now() - session.startTime;
+    const hours = Math.ceil(duration / (1000 * 60 * 60));
+    document.getElementById('feeModalContent').innerHTML = `
+      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:16px;">
+        Draft fee statement. Payment rates not yet configured.
+      </div>
+      <div class="print-section">
+        <h3>Session Details</h3>
+        <table class="print-table">
+          <tr><td>Date Generated</td><td>${new Date().toLocaleString()}</td></tr>
+          <tr><td>Session ID</td><td>${session.id}</td></tr>
+          <tr><td>Spot</td><td>${session.spotNumber}</td></tr>
+          <tr><td>Plate</td><td>${session.plate}</td></tr>
+          <tr><td>Color</td><td>${session.plateAnalysis?.vehicleColor || 'Not recorded'}</td></tr>
+          <tr><td>Make/Model</td><td>${[session.plateAnalysis?.vehicleMake, session.plateAnalysis?.vehicleModel].filter(Boolean).join(' ') || 'Not recorded'}</td></tr>
+          <tr><td>Started</td><td>${new Date(session.startTime).toLocaleString()}</td></tr>
+          <tr><td>Ended</td><td>${session.endTime ? new Date(session.endTime).toLocaleString() : 'Ongoing'}</td></tr>
+          <tr><td>Duration</td><td>${formatDuration(duration)} (${hours} billable hour${hours !== 1 ? 's' : ''})</td></tr>
+          <tr><td>Entry Type</td><td>${session.operatorInitiated ? 'Operator Initiated' : 'Self Check-In'}</td></tr>
+          <tr><td>Notes</td><td>${session.operatorNote || '--'}</td></tr>
+        </table>
+      </div>
+      <div class="print-section">
+        <h3>Charges</h3>
+        <table class="print-table">
+          <tr><td>Hourly Rate</td><td>$ ____________</td></tr>
+          <tr><td>Billable Hours</td><td>${hours}</td></tr>
+          <tr><td>Total Due</td><td>$ ____________</td></tr>
+        </table>
+      </div>
+    `;
+    closeModal('spotModal');
+    closeModal('sessionModal');
+    document.getElementById('feeModal').classList.add('open');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.classList.remove('open');
+    });
+  });
+
+  function formatDuration(ms) {
+    const totalMins = Math.floor(ms / 60000);
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
+    if (h > 0) return h + 'h ' + m + 'm';
+    return m + 'm';
+  }
+</script>
+</body>
+</html>

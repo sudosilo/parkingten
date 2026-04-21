@@ -1,1 +1,353 @@
-404: Not Found
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PARKINGTEN -- Check In</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --border: #2a2a2a;
+    --accent: #e8ff47;
+    --accent2: #47ffe8;
+    --text: #f0f0f0;
+    --muted: #666;
+    --danger: #ff4747;
+    --success: #47ff8a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0 60px 0;
+  }
+  header {
+    width: 100%;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .logo span { color: var(--text); opacity: 0.3; }
+  .tagline { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
+  .container { width: 100%; max-width: 480px; padding: 32px 20px; display: flex; flex-direction: column; gap: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 24px; }
+  .card-title { font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+  .nfc-banner {
+    background: linear-gradient(135deg, #1a1f0a 0%, #0f1a1a 100%);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    padding: 14px 18px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: var(--accent);
+  }
+  .nfc-banner.visible { display: flex; }
+  .nfc-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  label { font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+  input[type="text"], input[type="number"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 1.1rem;
+    padding: 14px 16px;
+    width: 100%;
+    letter-spacing: 0.1em;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+  }
+  input[type="text"]:focus, input[type="number"]:focus { outline: none; border-color: var(--accent); }
+  input[readonly] { opacity: 0.6; cursor: not-allowed; border-color: var(--accent); color: var(--accent); }
+  .plate-input { text-transform: uppercase; font-size: 1.4rem !important; letter-spacing: 0.25em !important; text-align: center; }
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 4px;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: rgba(232, 255, 71, 0.03); }
+  .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 2rem; margin-bottom: 8px; }
+  .upload-label { font-size: 0.85rem; color: var(--muted); }
+  .upload-label strong { color: var(--accent); display: block; margin-bottom: 4px; }
+  .preview-img { width: 100%; border-radius: 3px; border: 1px solid var(--border); display: none; margin-top: 12px; }
+  .analysis-result {
+    margin-top: 16px; padding: 16px; background: var(--bg);
+    border-radius: 3px; border-left: 3px solid var(--muted);
+    display: none; font-size: 0.82rem; line-height: 1.6;
+  }
+  .analysis-result.pass { border-color: var(--success); }
+  .analysis-result.warn { border-color: #ffaa47; }
+  .analysis-result.fail { border-color: var(--danger); }
+  .analysis-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid var(--border); }
+  .analysis-row:last-child { border-bottom: none; }
+  .analysis-key { color: var(--muted); }
+  .analysis-val { font-family: 'DM Mono', monospace; color: var(--text); text-align: right; max-width: 60%; }
+  .btn {
+    width: 100%; padding: 16px; background: var(--accent); color: #0a0a0a;
+    border: none; border-radius: 3px; font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem; letter-spacing: 0.15em; cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s; position: relative;
+  }
+  .btn:hover { opacity: 0.9; }
+  .btn:active { transform: scale(0.99); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn.secondary {
+    background: transparent; border: 1px solid var(--border); color: var(--text);
+    font-size: 0.85rem; font-family: 'DM Sans', sans-serif;
+    letter-spacing: 0.05em; padding: 12px; margin-top: 8px;
+  }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(0,0,0,0.3); border-top-color: #000;
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+    vertical-align: middle; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .success-screen { display: none; flex-direction: column; align-items: center; gap: 20px; text-align: center; padding: 40px 20px; }
+  .success-screen.visible { display: flex; }
+  .success-icon { font-size: 4rem; animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .success-title { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; color: var(--success); letter-spacing: 0.1em; }
+  .success-detail { font-family: 'DM Mono', monospace; font-size: 0.85rem; color: var(--muted); line-height: 1.8; }
+  .session-box { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 20px 28px; width: 100%; max-width: 320px; }
+  .session-box .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.85rem; border-bottom: 1px solid var(--border); }
+  .session-box .row:last-child { border-bottom: none; }
+  .session-box .key { color: var(--muted); }
+  .session-box .val { font-family: 'DM Mono', monospace; color: var(--accent); }
+  .error-msg { color: var(--danger); font-size: 0.8rem; margin-top: 6px; display: none; }
+  .error-msg.visible { display: block; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="logo">PARKING<span>TEN</span></div>
+    <div class="tagline">Parking Check-In</div>
+  </div>
+</header>
+<div class="container" id="mainForm">
+  <div class="nfc-banner" id="nfcBanner">
+    <div class="nfc-icon">&#x1F4F1;</div>
+    <div>NFC spot detected -- Spot number autofilled. Confirm your plate below.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Step 1 -- Parking Spot</div>
+    <div class="field">
+      <label for="spotNumber">Spot Number</label>
+      <input type="number" id="spotNumber" placeholder="Enter spot number" min="1" />
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Step 2 -- License Plate</div>
+    <div class="field">
+      <label for="plateText">Plate Number</label>
+      <input type="text" id="plateText" class="plate-input" placeholder="ABC1234" maxlength="10" />
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Step 3 -- Plate Photo</div>
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="photoInput" accept="image/*" capture="environment" />
+      <div class="upload-icon">&#x1F4F7;</div>
+      <div class="upload-label">
+        <strong>Take or upload a photo</strong>
+        of your license plate
+      </div>
+    </div>
+    <img class="preview-img" id="previewImg" alt="Plate preview" />
+    <div class="analysis-result" id="analysisResult"><div id="analysisRows"></div></div>
+    <button class="btn secondary" id="analyzeBtn" style="display:none;" disabled>Analyzing plate...</button>
+  </div>
+  <div class="error-msg" id="errorMsg"></div>
+  <button class="btn" id="submitBtn" disabled>Check In</button>
+</div>
+<div class="success-screen" id="successScreen">
+  <div class="success-icon">&#x2713;</div>
+  <div class="success-title">Checked In</div>
+  <div class="success-detail">Your session has been logged.</div>
+  <div class="session-box" id="sessionBox"></div>
+  <div class="success-detail" style="font-size:0.75rem;">Keep this confirmation for your records.</div>
+</div>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const spotParam = params.get('spot');
+  const spotInput = document.getElementById('spotNumber');
+  const nfcBanner = document.getElementById('nfcBanner');
+
+  if (spotParam) {
+    spotInput.value = spotParam;
+    spotInput.readOnly = true;
+    nfcBanner.classList.add('visible');
+  }
+
+  if ('NDEFReader' in window) {
+    const reader = new NDEFReader();
+    reader.scan().then(() => {
+      reader.addEventListener('reading', ({ message }) => {
+        for (const record of message.records) {
+          if (record.recordType === 'url' || record.recordType === 'text') {
+            try {
+              const decoder = new TextDecoder();
+              const text = decoder.decode(record.data);
+              let spotVal = null;
+              try {
+                const url = new URL(text);
+                spotVal = url.searchParams.get('spot');
+              } catch {
+                spotVal = text.trim();
+              }
+              if (spotVal && !isNaN(spotVal)) {
+                spotInput.value = spotVal;
+                spotInput.readOnly = true;
+                nfcBanner.classList.add('visible');
+              }
+            } catch (e) { console.warn('NFC read error:', e); }
+          }
+        }
+      });
+    }).catch((err) => { console.warn('NFC scan not available:', err); });
+  }
+
+  let imageBase64 = null;
+  let analysisData = null;
+
+  const photoInput = document.getElementById('photoInput');
+  const previewImg = document.getElementById('previewImg');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const analysisResult = document.getElementById('analysisResult');
+  const analysisRows = document.getElementById('analysisRows');
+  const submitBtn = document.getElementById('submitBtn');
+  const errorMsg = document.getElementById('errorMsg');
+  const plateText = document.getElementById('plateText');
+
+  photoInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      imageBase64 = ev.target.result;
+      previewImg.src = imageBase64;
+      previewImg.style.display = 'block';
+      analyzeBtn.style.display = 'block';
+      analyzeBtn.disabled = true;
+      analyzeBtn.innerHTML = '<span class="spinner"></span>Analyzing plate...';
+      analysisResult.style.display = 'none';
+      await runAnalysis();
+    };
+    reader.readAsDataURL(file);
+  });
+
+  async function runAnalysis() {
+    if (!imageBase64) return;
+    const claimed = plateText.value.trim().toUpperCase();
+    try {
+      const resp = await fetch('/api/analyze-plate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64, plateClaimed: claimed })
+      });
+      analysisData = await resp.json();
+      const rows = [
+        ['Readable', analysisData.readable ? 'Yes' : 'No'],
+        ['Extracted Plate', analysisData.extractedPlate || '--'],
+        ['Plate Match', analysisData.plateMatch === true ? 'Match' : analysisData.plateMatch === false ? 'Mismatch' : '--'],
+        ['Color', analysisData.vehicleColor || '--'],
+        ['Make', analysisData.vehicleMake || '--'],
+        ['Model', analysisData.vehicleModel || '--'],
+        ['Notes', analysisData.notes || '--']
+      ];
+      analysisRows.innerHTML = rows.map(([k, v]) =>
+        `<div class="analysis-row"><span class="analysis-key">${k}</span><span class="analysis-val">${v}</span></div>`
+      ).join('');
+      analysisResult.style.display = 'block';
+      const match = analysisData.plateMatch;
+      analysisResult.className = 'analysis-result ' + (match === true ? 'pass' : 'warn');
+      analyzeBtn.style.display = 'none';
+      checkReady();
+    } catch (err) {
+      analyzeBtn.innerHTML = 'Retry Analysis';
+      analyzeBtn.disabled = false;
+      analyzeBtn.onclick = runAnalysis;
+      showError('Plate analysis failed. You can still check in.');
+      checkReady();
+    }
+  }
+
+  plateText.addEventListener('input', () => { plateText.value = plateText.value.toUpperCase(); checkReady(); });
+  spotInput.addEventListener('input', checkReady);
+
+  function checkReady() {
+    const hasSpot = spotInput.value.trim() !== '';
+    const hasPlate = plateText.value.trim().length >= 2;
+    const hasPhoto = imageBase64 !== null;
+    submitBtn.disabled = !(hasSpot && hasPlate && hasPhoto);
+  }
+
+  function showError(msg) { errorMsg.textContent = msg; errorMsg.classList.add('visible'); }
+  function clearError() { errorMsg.textContent = ''; errorMsg.classList.remove('visible'); }
+
+  submitBtn.addEventListener('click', async () => {
+    clearError();
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span>Checking in...';
+    try {
+      const resp = await fetch('/api/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          spotNumber: spotInput.value.trim(),
+          plate: plateText.value.trim().toUpperCase(),
+          plateAnalysis: analysisData,
+          operatorInitiated: false
+        })
+      });
+      const data = await resp.json();
+      if (!data.success) throw new Error(data.error || 'Check-in failed');
+      document.getElementById('mainForm').style.display = 'none';
+      const successScreen = document.getElementById('successScreen');
+      successScreen.classList.add('visible');
+      const s = data.session;
+      const started = new Date(s.startTime).toLocaleString();
+      document.getElementById('sessionBox').innerHTML = `
+        <div class="row"><span class="key">Session</span><span class="val">${s.id.split('_')[1]}</span></div>
+        <div class="row"><span class="key">Spot</span><span class="val">${s.spotNumber}</span></div>
+        <div class="row"><span class="key">Plate</span><span class="val">${s.plate}</span></div>
+        <div class="row"><span class="key">Started</span><span class="val">${started}</span></div>
+        <div class="row"><span class="key">Status</span><span class="val">Active</span></div>
+      `;
+    } catch (err) {
+      showError(err.message || 'Check-in failed. Please try again.');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Check In';
+    }
+  });
+</script>
+</body>
+</html>
