@@ -1,4 +1,4 @@
-import { getJSON, setJSON, isOperator } from '../lib/redis.js';
+import { getJSON, setJSON, isOperator, envShape } from '../lib/redis.js';
 
 const DEFAULT_SPOTS = Array.from({ length: 10 }, (_, i) => ({
   number: String(i + 1), label: `Spot ${i + 1}`, type: 'standard', active: true
@@ -19,6 +19,6 @@ export default async function handler(req, res) {
     }
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (err) {
-    return res.status(req.query && req.query.trace ? 200 : 500).json({ error: 'Server error', detail: err.message });
+    return res.status(req.query && req.query.trace ? 200 : 500).json({ error: 'Server error', detail: err.message, ...(req.query && req.query.trace ? { shape: envShape() } : {}) });
   }
 }
