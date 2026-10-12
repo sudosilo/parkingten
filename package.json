@@ -1,12 +1,7 @@
 {
   "name": "parkingten",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Parking infrastructure management platform",
   "type": "module",
-  "scripts": {
-    "dev": "vercel dev"
-  },
-  "dependencies": {
-    "@upstash/redis": "^1.28.0"
-  }
+  "private": true
 }

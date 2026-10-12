@@ -7,21 +7,22 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #080808;
-    --surface: #111;
-    --surface2: #181818;
-    --border: #222;
-    --accent: #e8ff47;
-    --accent2: #47ffe8;
-    --text: #e8e8e8;
-    --muted: #555;
-    --danger: #ff4747;
-    --success: #47ff8a;
-    --warn: #ffaa47;
-    --spot-empty: #1a1a1a;
-    --spot-occupied: #1a2e1a;
-    --spot-flagged: #2e1a1a;
-    --spot-operator: #1a1a2e;
+    --bg: #f4f5f0;
+    --surface: #ffffff;
+    --surface2: #f0f2ea;
+    --border: #d9dcd2;
+    --accent: #3d5a00;
+    --accent-fill: #d8f05a;
+    --accent2: #00796b;
+    --text: #1c1f17;
+    --muted: #6b7064;
+    --danger: #c62828;
+    --success: #2e7d32;
+    --warn: #e08a00;
+    --spot-empty: #ffffff;
+    --spot-occupied: #e6f4e7;
+    --spot-flagged: #fbe5e5;
+    --spot-operator: #e0f2f0;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100dvh; }
@@ -40,7 +41,7 @@
   }
   input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
   .btn {
-    padding: 13px 20px; background: var(--accent); color: #080808; border: none; border-radius: 3px;
+    padding: 13px 20px; background: var(--accent-fill); color: #1c1f17; border: none; border-radius: 3px;
     font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 0.12em;
     cursor: pointer; transition: opacity 0.15s; width: 100%;
   }
@@ -48,7 +49,7 @@
   .btn:disabled { opacity: 0.35; cursor: not-allowed; }
   .btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); font-size: 0.8rem; font-family: 'DM Sans', sans-serif; letter-spacing: 0.04em; padding: 10px 16px; }
   .btn.danger-btn { background: var(--danger); color: #fff; }
-  .btn.warn-btn { background: var(--warn); color: #080808; }
+  .btn.warn-btn { background: var(--warn); color: #1c1f17; }
   .btn.small { width: auto; padding: 7px 14px; font-size: 0.75rem; font-family: 'DM Sans', sans-serif; letter-spacing: 0.04em; }
   .auth-error { color: var(--danger); font-size: 0.8rem; text-align: center; display: none; }
   #appScreen { display: none; }
@@ -95,12 +96,12 @@
   .sessions-table tr:hover td { background: var(--surface2); }
   .plate-badge { font-family: 'DM Mono', monospace; background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 3px 8px; font-size: 0.85rem; letter-spacing: 0.1em; }
   .status-badge { font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 8px; border-radius: 2px; }
-  .status-badge.active { background: rgba(71,255,138,0.1); color: var(--success); }
-  .status-badge.flagged { background: rgba(255,71,71,0.1); color: var(--danger); }
-  .status-badge.operator { background: rgba(71,255,232,0.1); color: var(--accent2); }
-  .status-badge.closed { background: rgba(85,85,85,0.2); color: var(--muted); }
+  .status-badge.active { background: rgba(46,125,50,0.12); color: var(--success); }
+  .status-badge.flagged { background: rgba(198,40,40,0.1); color: var(--danger); }
+  .status-badge.operator { background: rgba(0,121,107,0.1); color: var(--accent2); }
+  .status-badge.closed { background: rgba(107,112,100,0.15); color: var(--muted); }
   .actions { display: flex; gap: 6px; flex-wrap: wrap; }
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(28,31,23,0.45); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
   .modal-overlay.open { display: flex; }
   .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 28px; width: 100%; max-width: 440px; max-height: 90dvh; overflow-y: auto; }
   .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 0.1em; margin-bottom: 20px; color: var(--accent); }
@@ -117,7 +118,7 @@
   .history-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 16px; }
   .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); font-size: 0.85rem; }
   .empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
-  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--text); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(0,0,0,0.15); border-top-color: var(--text); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .refresh-time { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.08em; }
   .overflow-table { overflow-x: auto; }
@@ -243,8 +244,30 @@
   </div>
 </div>
 <script>
-  const AUTH_KEY = 'pt_auth';
-  let authed = sessionStorage.getItem(AUTH_KEY) === '1';
+  const AUTH_KEY = 'pt_operator_key';
+  let operatorKey = null;
+  try { operatorKey = sessionStorage.getItem(AUTH_KEY); } catch (e) {}
+  let authed = !!operatorKey;
+
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // Every /api call from this page carries the operator key. A 401 sends the operator back to the login screen.
+  const rawFetch = window.fetch.bind(window);
+  window.fetch = async (url, opts = {}) => {
+    if (typeof url === 'string' && url.startsWith('/api/') && operatorKey) {
+      opts = { ...opts, headers: { ...(opts.headers || {}), 'x-operator-key': operatorKey } };
+    }
+    const resp = await rawFetch(url, opts);
+    if (resp.status === 401 && url !== '/api/auth') logout();
+    return resp;
+  };
+
+  function logout() {
+    operatorKey = null;
+    authed = false;
+    try { sessionStorage.removeItem(AUTH_KEY); } catch (e) {}
+    location.reload();
+  }
 
   function showApp() {
     document.getElementById('authScreen').style.display = 'none';
@@ -263,7 +286,8 @@
     });
     const data = await resp.json();
     if (data.success) {
-      sessionStorage.setItem(AUTH_KEY, '1');
+      operatorKey = pw;
+      try { sessionStorage.setItem(AUTH_KEY, pw); } catch (e) {}
       authed = true;
       showApp();
     } else {
@@ -300,12 +324,12 @@
 
   async function loadSpots() {
     try {
-      const [spotsResp, sessResp] = await Promise.all([
-        fetch('/api/spots'),
-        fetch('/api/sessions?action=active')
+      const [spotsResp, sessResp] = await Promise.allSettled([
+        fetch('/api/spots').then(r => r.json()),
+        fetch('/api/sessions?action=active').then(r => r.json())
       ]);
-      spotConfig = await spotsResp.json();
-      activeSessions = await sessResp.json();
+      if (spotsResp.status === 'fulfilled' && Array.isArray(spotsResp.value)) spotConfig = spotsResp.value;
+      if (sessResp.status === 'fulfilled' && Array.isArray(sessResp.value)) activeSessions = sessResp.value;
       renderGrid();
     } catch (err) { console.error('Load spots error:', err); }
   }
@@ -365,7 +389,9 @@
   async function loadSessions() {
     try {
       const resp = await fetch('/api/sessions?action=active');
-      activeSessions = await resp.json();
+      const data = await resp.json();
+      if (!Array.isArray(data)) throw new Error(data.error || 'Could not load sessions');
+      activeSessions = data;
       renderSessionsTable();
       renderGrid();
       document.getElementById('lastRefresh').textContent = 'Updated ' + new Date().toLocaleTimeString();
@@ -433,7 +459,7 @@
       });
     }
     return rows.map(([k, v]) =>
-      `<div class="detail-row"><span class="detail-key">${k}</span><span class="detail-val">${v}</span></div>`
+      `<div class="detail-row"><span class="detail-key">${esc(k)}</span><span class="detail-val">${esc(v)}</span></div>`
     ).join('');
   }
 
@@ -496,14 +522,14 @@
   });
 
   async function searchPlate() {
-    const plate = document.getElementById('searchInput').value.trim().toUpperCase();
+    const plate = document.getElementById('searchInput').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!plate) return;
     const container = document.getElementById('plateHistory');
     container.innerHTML = '<div class="empty-state"><span class="spinner"></span> Searching...</div>';
     try {
       const resp = await fetch('/api/sessions?action=plate&plate=' + encodeURIComponent(plate));
       const sessions = await resp.json();
-      if (!sessions || sessions.length === 0) {
+      if (!Array.isArray(sessions) || sessions.length === 0) {
         container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x1F50D;</div>No sessions found for ' + plate + '</div>';
         return;
       }
@@ -518,7 +544,7 @@
           <div class="detail-row"><span class="detail-key">Ended</span><span class="detail-val">${s.endTime ? new Date(s.endTime).toLocaleString() : '--'}</span></div>
           <div class="detail-row"><span class="detail-key">Type</span><span class="detail-val">${s.operatorInitiated ? 'Operator' : 'Self'}</span></div>
           <div class="detail-row"><span class="detail-key">Flags</span><span class="detail-val">${s.flags && s.flags.length > 0 ? s.flags.length + ' flag(s)' : 'None'}</span></div>
-          ${s.operatorNote ? `<div class="detail-row"><span class="detail-key">Note</span><span class="detail-val">${s.operatorNote}</span></div>` : ''}
+          ${s.operatorNote ? `<div class="detail-row"><span class="detail-key">Note</span><span class="detail-val">${esc(s.operatorNote)}</span></div>` : ''}
           <div style="margin-top:12px;">
             <button class="btn ghost small" onclick="showFeeStatement('${s.id}')">Fee Statement</button>
           </div>
@@ -585,6 +611,7 @@
       try {
         const resp = await fetch('/api/sessions?action=one&sessionId=' + sessionId);
         session = await resp.json();
+        if (!session || !session.id) return;
       } catch { return; }
     }
     const duration = Date.now() - session.startTime;
@@ -600,13 +627,13 @@
           <tr><td>Session ID</td><td>${session.id}</td></tr>
           <tr><td>Spot</td><td>${session.spotNumber}</td></tr>
           <tr><td>Plate</td><td>${session.plate}</td></tr>
-          <tr><td>Color</td><td>${session.plateAnalysis?.vehicleColor || 'Not recorded'}</td></tr>
-          <tr><td>Make/Model</td><td>${[session.plateAnalysis?.vehicleMake, session.plateAnalysis?.vehicleModel].filter(Boolean).join(' ') || 'Not recorded'}</td></tr>
+          <tr><td>Color</td><td>${esc(session.plateAnalysis?.vehicleColor || 'Not recorded')}</td></tr>
+          <tr><td>Make/Model</td><td>${esc([session.plateAnalysis?.vehicleMake, session.plateAnalysis?.vehicleModel].filter(Boolean).join(' ') || 'Not recorded')}</td></tr>
           <tr><td>Started</td><td>${new Date(session.startTime).toLocaleString()}</td></tr>
           <tr><td>Ended</td><td>${session.endTime ? new Date(session.endTime).toLocaleString() : 'Ongoing'}</td></tr>
           <tr><td>Duration</td><td>${formatDuration(duration)} (${hours} billable hour${hours !== 1 ? 's' : ''})</td></tr>
           <tr><td>Entry Type</td><td>${session.operatorInitiated ? 'Operator Initiated' : 'Self Check-In'}</td></tr>
-          <tr><td>Notes</td><td>${session.operatorNote || '--'}</td></tr>
+          <tr><td>Notes</td><td>${esc(session.operatorNote || '--')}</td></tr>
         </table>
       </div>
       <div class="print-section">

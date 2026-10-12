@@ -7,15 +7,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #0a0a0a;
-    --surface: #141414;
-    --border: #2a2a2a;
-    --accent: #e8ff47;
-    --accent2: #47ffe8;
-    --text: #f0f0f0;
-    --muted: #666;
-    --danger: #ff4747;
-    --success: #47ff8a;
+    --bg: #f4f5f0;
+    --surface: #ffffff;
+    --border: #d9dcd2;
+    --accent: #3d5a00;
+    --accent-fill: #d8f05a;
+    --accent2: #00796b;
+    --text: #1c1f17;
+    --muted: #6b7064;
+    --danger: #c62828;
+    --success: #2e7d32;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -44,13 +45,13 @@
     color: var(--accent);
     line-height: 1;
   }
-  .logo span { color: var(--text); opacity: 0.3; }
+  .logo span { color: var(--text); opacity: 0.35; }
   .tagline { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
   .container { width: 100%; max-width: 480px; padding: 32px 20px; display: flex; flex-direction: column; gap: 24px; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 24px; }
   .card-title { font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
   .nfc-banner {
-    background: linear-gradient(135deg, #1a1f0a 0%, #0f1a1a 100%);
+    background: #f1f8d8;
     border: 1px solid var(--accent);
     border-radius: 4px;
     padding: 14px 18px;
@@ -91,7 +92,7 @@
     position: relative;
     overflow: hidden;
   }
-  .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: rgba(232, 255, 71, 0.03); }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: rgba(61, 90, 0, 0.05); }
   .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
   .upload-icon { font-size: 2rem; margin-bottom: 8px; }
   .upload-label { font-size: 0.85rem; color: var(--muted); }
@@ -110,7 +111,7 @@
   .analysis-key { color: var(--muted); }
   .analysis-val { font-family: 'DM Mono', monospace; color: var(--text); text-align: right; max-width: 60%; }
   .btn {
-    width: 100%; padding: 16px; background: var(--accent); color: #0a0a0a;
+    width: 100%; padding: 16px; background: var(--accent-fill); color: #1c1f17;
     border: none; border-radius: 3px; font-family: 'Bebas Neue', sans-serif;
     font-size: 1.3rem; letter-spacing: 0.15em; cursor: pointer;
     transition: opacity 0.15s, transform 0.1s; position: relative;
@@ -235,6 +236,27 @@
     }).catch((err) => { console.warn('NFC scan not available:', err); });
   }
 
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // Shrink phone photos so the upload stays under the server body limit.
+  function shrinkImage(file, maxSide = 1280) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read photo')); };
+      img.src = url;
+    });
+  }
+
   let imageBase64 = null;
   let analysisData = null;
 
@@ -250,18 +272,20 @@
   photoInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      imageBase64 = ev.target.result;
-      previewImg.src = imageBase64;
-      previewImg.style.display = 'block';
-      analyzeBtn.style.display = 'block';
-      analyzeBtn.disabled = true;
-      analyzeBtn.innerHTML = '<span class="spinner"></span>Analyzing plate...';
-      analysisResult.style.display = 'none';
-      await runAnalysis();
-    };
-    reader.readAsDataURL(file);
+    clearError();
+    try {
+      imageBase64 = await shrinkImage(file);
+    } catch (err) {
+      showError(err.message);
+      return;
+    }
+    previewImg.src = imageBase64;
+    previewImg.style.display = 'block';
+    analyzeBtn.style.display = 'block';
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = '<span class="spinner"></span>Analyzing plate...';
+    analysisResult.style.display = 'none';
+    await runAnalysis();
   });
 
   async function runAnalysis() {
@@ -274,6 +298,7 @@
         body: JSON.stringify({ imageBase64, plateClaimed: claimed })
       });
       analysisData = await resp.json();
+      if (!resp.ok) throw new Error(analysisData.error || 'Analysis failed');
       const rows = [
         ['Readable', analysisData.readable ? 'Yes' : 'No'],
         ['Extracted Plate', analysisData.extractedPlate || '--'],
@@ -284,7 +309,7 @@
         ['Notes', analysisData.notes || '--']
       ];
       analysisRows.innerHTML = rows.map(([k, v]) =>
-        `<div class="analysis-row"><span class="analysis-key">${k}</span><span class="analysis-val">${v}</span></div>`
+        `<div class="analysis-row"><span class="analysis-key">${esc(k)}</span><span class="analysis-val">${esc(v)}</span></div>`
       ).join('');
       analysisResult.style.display = 'block';
       const match = analysisData.plateMatch;
@@ -292,6 +317,7 @@
       analyzeBtn.style.display = 'none';
       checkReady();
     } catch (err) {
+      analysisData = null;
       analyzeBtn.innerHTML = 'Retry Analysis';
       analyzeBtn.disabled = false;
       analyzeBtn.onclick = runAnalysis;
@@ -300,7 +326,7 @@
     }
   }
 
-  plateText.addEventListener('input', () => { plateText.value = plateText.value.toUpperCase(); checkReady(); });
+  plateText.addEventListener('input', () => { plateText.value = plateText.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); checkReady(); });
   spotInput.addEventListener('input', checkReady);
 
   function checkReady() {
@@ -336,10 +362,10 @@
       const s = data.session;
       const started = new Date(s.startTime).toLocaleString();
       document.getElementById('sessionBox').innerHTML = `
-        <div class="row"><span class="key">Session</span><span class="val">${s.id.split('_')[1]}</span></div>
-        <div class="row"><span class="key">Spot</span><span class="val">${s.spotNumber}</span></div>
-        <div class="row"><span class="key">Plate</span><span class="val">${s.plate}</span></div>
-        <div class="row"><span class="key">Started</span><span class="val">${started}</span></div>
+        <div class="row"><span class="key">Session</span><span class="val">${esc(s.id.split('_')[1])}</span></div>
+        <div class="row"><span class="key">Spot</span><span class="val">${esc(s.spotNumber)}</span></div>
+        <div class="row"><span class="key">Plate</span><span class="val">${esc(s.plate)}</span></div>
+        <div class="row"><span class="key">Started</span><span class="val">${esc(started)}</span></div>
         <div class="row"><span class="key">Status</span><span class="val">Active</span></div>
       `;
     } catch (err) {

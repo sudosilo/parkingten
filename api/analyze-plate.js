@@ -1,72 +1,72 @@
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+import https from 'https';
 
-  const { imageBase64, plateClaimed } = req.body;
-
-  if (!imageBase64) {
-    return res.status(400).json({ error: 'No image provided' });
-  }
-
-  try {
-    const prompt = `You are analyzing a license plate photo for a parking management system.
-
-The user claims the license plate reads: "${plateClaimed}"
-
-Analyze the image and respond ONLY with a JSON object, no markdown, no explanation:
-{
-  "readable": true or false,
-  "extractedPlate": "plate text you can read, or null",
-  "plateMatch": true or false or null,
-  "vehicleColor": "color or null",
-  "vehicleMake": "make if visible or null",
-  "vehicleModel": "model if visible or null",
-  "notes": "any other identifying details or null"
-}`;
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+function anthropic(payload) {
+  const body = JSON.stringify(payload);
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'api.anthropic.com',
+      path: '/v1/messages',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'Content-Length': Buffer.byteLength(body),
+        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
         'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-5',
-        max_tokens: 400,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: 'image/jpeg',
-                  data: imageBase64.replace(/^data:image\/\w+;base64,/, '')
-                }
-              },
-              { type: 'text', text: prompt }
-            ]
-          }
+      }
+    }, (res) => {
+      let data = '';
+      res.on('data', (c) => { data += c; });
+      res.on('end', () => { try { resolve(JSON.parse(data)); } catch { reject(new Error('Bad AI response')); } });
+    });
+    req.on('error', reject);
+    req.setTimeout(25000, () => req.destroy(new Error('AI timeout')));
+    req.write(body);
+    req.end();
+  });
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const { imageBase64, plateClaimed } = req.body || {};
+  if (!imageBase64) return res.status(400).json({ error: 'No image provided' });
+
+  const match = /^data:(image\/(?:jpeg|png|webp|gif));base64,/.exec(imageBase64);
+  const mediaType = match ? match[1] : 'image/jpeg';
+  const data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+  const claimed = String(plateClaimed || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+
+  const prompt = `You are checking a license plate photo for a parking check-in.
+The driver typed the plate as: "${claimed}"
+Reply with ONLY a JSON object, no markdown:
+{"readable": true|false, "extractedPlate": "letters and digits only, or null", "plateMatch": true|false|null, "vehicleColor": "or null", "vehicleMake": "or null", "vehicleModel": "or null", "notes": "other identifying details, or null"}
+plateMatch compares extractedPlate to the typed plate ignoring spaces and dashes; use null if unreadable.`;
+
+  try {
+    const out = await anthropic({
+      model: 'claude-sonnet-5-5',
+      max_tokens: 400,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data } },
+          { type: 'text', text: prompt }
         ]
-      })
+      }]
     });
 
-    const data = await response.json();
-    const text = data.content?.[0]?.text || '{}';
+    if (out.error) return res.status(502).json({ error: 'Analysis failed', detail: out.error.message });
 
+    const text = out.content?.[0]?.text || '{}';
     let parsed;
     try {
-      parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+      const jsonText = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
+      parsed = JSON.parse(jsonText);
     } catch {
-      parsed = { readable: false, extractedPlate: null, plateMatch: null, notes: 'Analysis failed' };
+      parsed = { readable: false, extractedPlate: null, plateMatch: null, notes: 'Could not read the analysis' };
     }
-
     return res.status(200).json(parsed);
   } catch (err) {
-    console.error('Plate analysis error:', err);
     return res.status(500).json({ error: 'Analysis failed', detail: err.message });
   }
 }
